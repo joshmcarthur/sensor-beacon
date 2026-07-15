@@ -38,13 +38,13 @@ StdRNG rng;
 ArduinoMillis arduino_ms;
 SimpleMeshTables tables;
 StaticPoolPacketManager packet_mgr(8);
-BeaconMesh mesh(radio_driver, arduino_ms, rng, rtc_clock, packet_mgr, tables);
-SensorReader sensors;
+BeaconMesh beacon(radio_driver, arduino_ms, rng, rtc_clock, packet_mgr, tables);
+SensorReader sensor_reader;
 
 mesh::GroupChannel beacon_channel;
 
 void runBeaconCycle() {
-  Reading reading = sensors.read();
+  Reading reading = sensor_reader.read();
   char payload[120];
   int payload_len = formatBeaconMessage(reading, payload, sizeof(payload));
   if (payload_len <= 0) {
@@ -56,7 +56,7 @@ void runBeaconCycle() {
   Serial.println(payload);
 
   for (int i = 0; i < BEACON_SEND_COUNT; i++) {
-    if (!mesh.sendGroupText(beacon_channel, BEACON_NODE_NAME, payload)) {
+    if (!beacon.sendGroupText(beacon_channel, BEACON_NODE_NAME, payload)) {
       Serial.println(F("beacon: send failed"));
       break;
     }
@@ -65,7 +65,7 @@ void runBeaconCycle() {
     }
   }
 
-  mesh.drainTx(BEACON_TX_DRAIN_MS);
+  beacon.drainTx(BEACON_TX_DRAIN_MS);
   Serial.println(F("beacon: tx drain complete"));
 }
 
@@ -85,19 +85,19 @@ void setup() {
 
   InternalFS.begin();
   IdentityStore store(InternalFS, "");
-  if (!store.load("_main", mesh.self_id)) {
-    mesh.self_id = radio_new_identity();
+  if (!store.load("_main", beacon.self_id)) {
+    beacon.self_id = radio_new_identity();
     int count = 0;
     while (count < 10 &&
-           (mesh.self_id.pub_key[0] == 0x00 || mesh.self_id.pub_key[0] == 0xFF)) {
-      mesh.self_id = radio_new_identity();
+           (beacon.self_id.pub_key[0] == 0x00 || beacon.self_id.pub_key[0] == 0xFF)) {
+      beacon.self_id = radio_new_identity();
       count++;
     }
-    store.save("_main", mesh.self_id);
+    store.save("_main", beacon.self_id);
   }
 
   Serial.print(F("node id: "));
-  mesh::Utils::printHex(Serial, mesh.self_id.pub_key, PUB_KEY_SIZE);
+  mesh::Utils::printHex(Serial, beacon.self_id.pub_key, PUB_KEY_SIZE);
   Serial.println();
 
   if (!loadChannelFromPsk(BEACON_CHANNEL_PSK, beacon_channel)) {
@@ -105,8 +105,8 @@ void setup() {
     halt();
   }
 
-  sensors.begin(Wire, readBatteryMv);
-  mesh.begin();
+  sensor_reader.begin(Wire, readBatteryMv);
+  beacon.begin();
   board.onBootComplete();
 
   runBeaconCycle();
