@@ -4,7 +4,7 @@
 #include <helpers/ArduinoHelpers.h>
 #include <helpers/IdentityStore.h>
 #include <helpers/SimpleMeshTables.h>
-#include <target.h>
+#include "target.h"
 
 #include "BeaconMesh.h"
 #include "SensorReader.h"

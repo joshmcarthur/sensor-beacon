@@ -1,5 +1,6 @@
 #include "BeaconMesh.h"
 
+#include <Arduino.h>
 #include <Packet.h>
 #include <helpers/TxtDataHelpers.h>
 
