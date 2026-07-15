@@ -1,8 +1,8 @@
 #include "SensorReader.h"
 
 #include <Adafruit_BME280.h>
-#include <Adafruit_OPT3001.h>
 #include <Adafruit_LTR390.h>
+#include <ClosedCube_OPT3001.h>
 
 namespace {
 
@@ -26,8 +26,8 @@ bool probeBme280(TwoWire& wire, uint8_t& addr_out) {
 bool probeOpt3001(TwoWire& wire, uint8_t& addr_out) {
   static const uint8_t kAddrs[] = {0x44, 0x45, 0x46, 0x47};
   for (uint8_t addr : kAddrs) {
-    Adafruit_OPT3001 opt;
-    if (opt.begin(addr, &wire)) {
+    ClosedCube_OPT3001 opt;
+    if (opt.begin(addr) == NO_ERROR) {
       addr_out = addr;
       return true;
     }
@@ -101,11 +101,13 @@ Reading SensorReader::read() {
   }
 
   if (_has_lux) {
-    Adafruit_OPT3001 opt;
-    if (opt.begin(_opt_addr, _wire)) {
-      r.lux = opt.readLux();
-      opt.shutdown();
-      r.ok = true;
+    ClosedCube_OPT3001 opt;
+    if (opt.begin(_opt_addr) == NO_ERROR) {
+      OPT3001 sample = opt.readResult();
+      if (sample.error == NO_ERROR) {
+        r.lux = sample.lux;
+        r.ok = true;
+      }
     }
   }
 
@@ -114,12 +116,7 @@ Reading SensorReader::read() {
     if (ltr.begin(_wire)) {
       ltr.setMode(LTR390_MODE_UVS);
       delay(100);
-      uint32_t uvs = 0;
-      if (ltr.newDataAvailable()) {
-        uvs = ltr.readUVS();
-      } else {
-        uvs = ltr.readUVS();
-      }
+      uint32_t uvs = ltr.readUVS();
       r.uv_index = uvsToUvIndex(uvs);
       ltr.enable(false);
       r.ok = true;
