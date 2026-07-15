@@ -126,11 +126,9 @@ static const uint8_t A5  = PIN_A5;
 // Wire Interfaces
 #define WIRE_INTERFACES_COUNT   (1)
 
-// #define PIN_WIRE_SDA            (17) // 4 and 5 are used for the sx1262 !
-// #define PIN_WIRE_SCL            (16) // use WIRE1_SDA
-
-// static const uint8_t SDA = PIN_WIRE_SDA;
-// static const uint8_t SCL = PIN_WIRE_SCL;
+// Wire on D6/D7 (Wio SX1262 uses D1-D5 for LoRa)
+#define PIN_WIRE_SDA            (7)
+#define PIN_WIRE_SCL            (6)
 
 //#define PIN_WIRE1_SDA           (17)
 //#define PIN_WIRE1_SCL           (16)
