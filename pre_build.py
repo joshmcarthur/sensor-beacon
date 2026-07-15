@@ -10,8 +10,16 @@ variant_name = None
 for item in menv.get("BUILD_FLAGS", []):
     if "MC_VARIANT" in item:
         variant_name = item.split("=")[1]
-        variant_dir = f".pio/libdeps/{env_name}/MeshCore/variants/{variant_name}"
-        menv.Append(BUILD_FLAGS=[f"-I {variant_dir}"])
+        variant_dir = os.path.join(
+            menv["PROJECT_DIR"],
+            ".pio/libdeps",
+            env_name,
+            "MeshCore",
+            "variants",
+            variant_name,
+        )
+        if os.path.isdir(variant_dir):
+            menv.Append(CPPPATH=[variant_dir])
 
 libdeps = f".pio/libdeps/{env_name}/"
 mc_dir = libdeps + "MeshCore/"
@@ -24,4 +32,4 @@ if not os.path.exists(ed_dir) and os.path.isdir(mc_dir + "lib/ed25519"):
 
 nrf52_api = mc_dir + "lib/nrf52/s140_nrf52_7.3.0_API/include"
 if os.path.isdir(nrf52_api):
-    menv.Append(CPPPATH=[nrf52_api, nrf52_api + "/nrf52"])
+    menv.Append(CPPPATH=[nrf52_api, os.path.join(nrf52_api, "nrf52")])
