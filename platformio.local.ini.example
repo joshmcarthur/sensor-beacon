@@ -1,0 +1,6 @@
+; Copy to platformio.local.ini and customize per node / deployment.
+
+[env:xiao_sensor_beacon]
+build_flags =
+  -D BEACON_NODE_NAME='"garden01"'
+  -D BEACON_CHANNEL_PSK='"YOUR_BASE64_PSK_HERE"'
