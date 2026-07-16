@@ -12,6 +12,16 @@
 
 namespace {
 
+constexpr uint32_t kUsbSerialWaitMs = 5000;
+
+void waitForUsbSerial(uint32_t timeout_ms = kUsbSerialWaitMs) {
+  uint32_t start = millis();
+  while (!Serial && millis() - start < timeout_ms) {
+    delay(10);
+  }
+  delay(200);
+}
+
 void halt() {
   while (true) {
     delay(1000);
@@ -71,7 +81,7 @@ void runBeaconCycle() {
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  waitForUsbSerial();
 
   board.begin();
 
@@ -109,6 +119,8 @@ void setup() {
   beacon.begin();
   board.onBootComplete();
 
+  Serial.println(F("boot: ready"));
+  Serial.flush();
   runBeaconCycle();
 }
 
