@@ -9,7 +9,7 @@
 #endif
 
 #ifndef BEACON_NODE_NAME
-#define BEACON_NODE_NAME "beacon"
+#error "Define BEACON_NODE_NAME in platformio.local.ini (see platformio.local.ini.example)"
 #endif
 
 #ifndef BEACON_CHANNEL_PSK
