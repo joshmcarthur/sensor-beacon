@@ -65,7 +65,7 @@ Battery (`V=`) is always included.
 | `BEACON_INTERVAL_SECS` | 300 | Seconds between beacon cycles |
 | `BEACON_SEND_COUNT` | 3 | Flood sends per cycle (with jitter) |
 | `BEACON_NODE_NAME` | `beacon` | Prefix in GRP_TXT |
-| `LORA_FREQ` / `BW` / `SF` | 869.618 / 62.5 / 8 | Match your local mesh |
+| `LORA_FREQ` / `BW` / `SF` / `CR` | 916.575 / 62.5 / 7 / 8 | Australia/NZ (Narrow); match your local mesh |
 
 ## Architecture
 
