@@ -56,7 +56,7 @@ mesh::GroupChannel beacon_channel;
 void runBeaconCycle() {
   Reading reading = sensor_reader.read();
   char payload[120];
-  int payload_len = formatBeaconMessage(reading, payload, sizeof(payload));
+  int payload_len = sensor_reader.formatBeaconMessage(reading, payload, sizeof(payload));
   if (payload_len <= 0) {
     Serial.println(F("beacon: empty payload"));
     return;

@@ -70,9 +70,107 @@ Battery (`V=`) is always included.
 ## Architecture
 
 - **MeshCore** via `lib_deps` (library mode, `MC_VARIANT=xiao_nrf52` for board/radio glue)
-- **`SensorReader`** — local I2C probe + reads (not MeshCore `EnvironmentSensorManager`)
+- **`SensorReader`** — orchestrates pluggable I2C `SensorChannel` drivers (probe at boot, read each cycle)
 - **`BeaconMesh`** — thin `mesh::Mesh` subclass; no forwarding, private-channel flood only
 - **Loop:** wake → read → flood 2–3× → drain TX → `delay(interval)`
+
+Sensor drivers live in `src/sensors/`. Each driver subclasses `SensorChannel` and implements probe, read, and beacon formatting. See [Adding a sensor](#adding-a-sensor).
+
+## Adding a sensor
+
+Use an existing driver as a template — `Bme280Sensor` (simple `begin()` probe) or `Opt3001Sensor` (manufacturer/device ID check).
+
+### 1. Add the library dependency
+
+If the sensor needs a new Arduino library, add it under `[arduino_base]` → `lib_deps` in `platformio.ini`.
+
+### 2. Extend `Reading` (if needed)
+
+Add fields and `has_*` flags to `src/SensorReading.h` for any new measurements your beacon will carry.
+
+### 3. Implement `SensorChannel`
+
+Create `src/sensors/MySensor.h` and `src/sensors/MySensor.cpp`:
+
+```cpp
+// MySensor.h
+#pragma once
+#include "SensorChannel.h"
+
+class MySensor : public SensorChannel {
+public:
+  const __FlashStringHelper* name() const override;
+  bool probe(TwoWire& wire) override;
+  bool read(Reading& reading) override;
+  void appendBeaconFields(const Reading& reading, char* buf, size_t buf_len) const override;
+
+private:
+  TwoWire* _wire = nullptr;
+  uint8_t _addr = 0;
+};
+```
+
+```cpp
+// MySensor.cpp (sketch)
+#include "MySensor.h"
+#include "BeaconFields.h"
+#include <MySensorLib.h>
+
+const __FlashStringHelper* MySensor::name() const { return F("MYSENSOR"); }
+
+bool MySensor::probe(TwoWire& wire) {
+  _wire = &wire;
+  // Detect device on the bus; set _addr and _present = true on success.
+  // Use i2cDevicePresent() for a quick ACK check; verify chip IDs when the
+  // library's begin() is unreliable (see Opt3001Sensor).
+  return _present;
+}
+
+bool MySensor::read(Reading& reading) {
+  if (!_present) return false;
+  // Read hardware, set reading.has_mysensor / values, reading.ok = true.
+  return true;
+}
+
+void MySensor::appendBeaconFields(const Reading& reading, char* buf, size_t buf_len) const {
+  if (!reading.has_mysensor) return;
+  char field[48];
+  snprintf(field, sizeof(field), "X=%.1f", reading.my_value);
+  appendBeaconField(buf, buf_len, field);
+}
+```
+
+PlatformIO compiles all `src/**/*.cpp` automatically — no build config change needed.
+
+### 4. Register with `SensorReader`
+
+In `src/SensorReader.h`:
+
+- `#include "sensors/MySensor.h"`
+- Add a member: `MySensor _my_sensor;`
+
+In `src/SensorReader.cpp` constructor:
+
+```cpp
+_channels[_channel_count++] = &_my_sensor;
+```
+
+Keep `_channel_count` below `kMaxChannels` (default 8).
+
+### 5. Build and verify
+
+```bash
+pio run -e xiao_sensor_beacon
+```
+
+On hardware, confirm serial boot line lists the new sensor and beacon fields appear only when the device is connected:
+
+```
+sensors: BME280 MYSENSOR
+beacon: T=18.2 … X=1.0 V=3.85
+```
+
+Battery (`V=`) is appended by `SensorReader` — drivers do not need to handle it.
 
 ## Field verification checklist
 
