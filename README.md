@@ -6,9 +6,113 @@ One firmware binary serves a heterogeneous fleet: BME280/DHT22 (temp/humidity), 
 
 ## Hardware
 
-- **MCU / radio:** Xiao nRF52840 + Wio SX1262 (LoRa D1–D5, SPI D8–D10, I2C D6/D7)
-- **Optional sensors:** BME280 or DHT22 (temp/humidity), OPT3001 or BH1750 (lux), LTR390 (UV) (any subset per node)
-- **Battery:** read via Xiao ADC (`board.getBattMilliVolts()`)
+This firmware targets the **Seeed Studio XIAO nRF52840** MCU stacked on a **Wio-SX1262 for XIAO** LoRa carrier. Optional I2C (or 1-wire) sensors hang off the shared bus; each node can carry any supported subset of sensors.
+
+### Bill of materials
+
+| Item | Notes |
+|------|-------|
+| [XIAO nRF52840](https://www.seeedstudio.com/Seeed-XIAO-Bluetooth5-BLE-nRF52840-Sense-Microcontroller-p-4425.html) | Standard or **Sense** variant (Sense adds onboard IMU/mic — unused by this firmware) |
+| [Wio-SX1262 for XIAO](https://www.seeedstudio.com/Wio-SX1262-for-XIAO-p-6379.html) | Semtech SX1262, 862–930 MHz |
+| LoRa antenna | U.FL/IPEX pigtail matched to your band (e.g. 915 MHz NA, 868 MHz EU) |
+| USB-C cable | Power and firmware upload |
+| LiPo battery *(optional)* | 3.7 V single-cell, JST or solder to `BAT+` / `BAT−` pads |
+| I2C breakout(s) *(optional)* | BME280, OPT3001, BH1750, LTR390 — any subset per node |
+
+The pre-assembled [XIAO nRF52840 & Wio-SX1262 Kit](https://www.seeedstudio.com/XIAO-nRF52840-Wio-SX1262-Kit-for-Meshtastic-p-6400.html) (SKU 102010710) ships with the **V1.0** Wio PCB pinout this repo expects.
+
+### Physical assembly
+
+1. **Stack the boards** — seat the XIAO nRF52840 on the Wio-SX1262 castellated connector (USB-C on the XIAO faces out). Press firmly until all pins mate.
+2. **Attach the antenna** before transmitting — never power the radio without an antenna or dummy load.
+3. **Sensors** — wire I2C breakouts to `3V3`, `GND`, `D6` (SCL), and `D7` (SDA).
+4. **Battery** *(optional)* — connect a 3.7 V LiPo to the XIAO `BAT+` / `BAT−` pads. The onboard charger tops up from USB-C (50 mA or 100 mA depending on `HICHG` strap; default is 50 mA).
+
+### Wio-SX1262 PCB revision (important)
+
+Seeed ships two Wio-SX1262 PCB layouts. **This firmware is built for V1.0** — the layout bundled with the nRF52840 Meshtastic kit:
+
+| Signal | V1.0 (this repo) | V1.1 (ESP32-S3 kit PCB) |
+|--------|------------------|-------------------------|
+| NSS / CS | D4 | D3 |
+| DIO1 | D1 | D1 |
+| BUSY | D3 | D3 |
+| RESET | D2 | D2 |
+| RXEN | D5 | D4 |
+
+If you transplant a Wio module from an **XIAO ESP32-S3** kit onto an nRF52840, the radio pins differ and this binary will not work without changing the `P_LORA_*` / `SX126X_*` defines in `platformio.ini`. See the [Wio-SX1262 schematic (V1.0)](https://files.seeedstudio.com/products/SenseCAP/Wio_SX1262/Wio-SX1262%20for%20XIAO%20V1.0_SCH.pdf).
+
+### Pin map (as used by this firmware)
+
+| XIAO pin | Function in sensor-beacon |
+|----------|---------------------------|
+| D0 | User button (`PIN_BUTTON1`); optional DHT22 data pin |
+| D1 | LoRa DIO1 |
+| D2 | LoRa RESET |
+| D3 | LoRa BUSY |
+| D4 | LoRa NSS (SPI chip select) |
+| D5 | LoRa RXEN |
+| D6 | I2C SCL (`PIN_WIRE_SCL`) |
+| D7 | I2C SDA (`PIN_WIRE_SDA`) |
+| D8 | SPI SCK |
+| D9 | SPI MISO |
+| D10 | SPI MOSI |
+| D11 | LoRa TX activity LED (red, on Wio carrier) |
+| 3V3 / GND | Sensor and module power |
+
+LoRa SPI and control lines are consumed by the Wio stack — do not reassign D1–D5 or D8–D10. **D0** is the only castellated GPIO free for 1-wire sensors when using the default pinout.
+
+### Flashing and serial console
+
+- Connect USB-C. The board enumerates as a serial port (115200 baud in `platformio.ini`).
+- Upload: `pio run -e xiao_sensor_beacon -t upload` (uses `nrfutil` / Adafruit bootloader).
+- If upload fails, **double-tap the reset button** quickly to enter the UF2/bootloader mode, then retry.
+- Serial monitor: `pio device monitor` — boot prints detected sensors and each beacon cycle.
+- Optional SWD debug: `debug_tool = jlink` in `platformio.ini`; SWD pads are on the XIAO underside.
+
+On first boot over USB, firmware waits up to 5 s for a serial connection before continuing (handy for catching early log lines).
+
+### Power and battery monitoring
+
+| Source | Details |
+|--------|---------|
+| USB-C | 5 V input; powers the board and charges an attached LiPo |
+| BAT pads | 3.0–4.2 V LiPo; onboard charger, ~50 µA standby target once radio is asleep |
+| Beacon field `V=` | Battery voltage via `board.getBattMilliVolts()` (1 MΩ / 512 kΩ divider, ×3.0 multiplier) |
+
+Between beacon cycles the firmware disables the battery voltage divider and puts the SX1262 to sleep to minimise idle draw. The nRF52840 stays in **System ON idle** (not SYSTEMOFF) so the RTC can wake for the next interval — see [Power / sleep](#power--sleep).
+
+Use a cell with protection (PCM) and size it for your beacon interval and flood count. There is no solar/LDO path in this repo; add external regulation if you need 5 V sensors.
+
+### I2C sensor bus
+
+All I2C sensors share **D6 (SCL)** and **D7 (SDA)** at 3.3 V logic. Drivers probe once at boot and skip anything not found.
+
+| Sensor | Bus | Addresses probed | Beacon fields |
+|--------|-----|------------------|---------------|
+| BME280 | I2C | `0x76`, `0x77` | `T=` `H=` `P=` |
+| OPT3001 | I2C | `0x44`–`0x47` | `L=` |
+| BH1750 | I2C | `0x23`, `0x5C` | `L=` |
+| LTR390 | I2C | `0x53` | `UV=` |
+| DHT22 | 1-wire on GPIO | `D0` (configurable) | `T=` `H=` — see [DHT22](#dht22-1-wire-not-i2c) |
+
+Wire all breakouts in parallel on the same bus (each needs its own I2C address). Use one temp/humidity source per node — don't combine BME280 and DHT22.
+
+Example hookup for a BME280 breakout:
+
+| BME280 | XIAO |
+|--------|------|
+| VCC | 3V3 |
+| GND | GND |
+| SCL | D6 |
+| SDA | D7 |
+
+### Seeed reference docs
+
+- [XIAO nRF52840 wiki](https://wiki.seeedstudio.com/XIAO_BLE) — pinout, battery charging, power notes
+- [XIAO nRF52840 & Wio-SX1262 kit getting started](https://wiki.seeedstudio.com/xiao_nrf52840&_wio_SX1262_kit_for_meshtastic/)
+- [XIAO nRF52840 schematic (PDF)](https://files.seeedstudio.com/wiki/XIAO-BLE/nRF52840-Seeed-Studio-XIAO-nRF52840-Schematic.pdf)
+- [Wio-SX1262 for XIAO schematic (PDF)](https://files.seeedstudio.com/products/SenseCAP/Wio_SX1262/Wio-SX1262%20for%20XIAO%20V1.0_SCH.pdf)
 
 ## Quick start
 
