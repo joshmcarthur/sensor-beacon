@@ -63,11 +63,11 @@ Battery (`V=`) is always included. Message timestamps in the app come from the s
 
 | Define | Default | Description |
 |--------|---------|-------------|
-| `BEACON_INTERVAL_SECS` | 300 | Seconds between beacon cycles |
+| `BEACON_INTERVAL_SECS` | 300 | Seconds between beacon cycles (System ON idle; SX1262 asleep) |
 | `BEACON_SEND_COUNT` | 3 | Flood sends per cycle (with jitter) |
 | `DHT22_PIN` | *(off)* | Enable DHT22 on a GPIO, e.g. `D0` (see below) |
 | `BEACON_NODE_NAME` | `beacon` | Prefix in GRP_TXT |
-| `LORA_FREQ` / `BW` / `SF` / `CR` | 916.575 / 62.5 / 7 / 8 | Australia/NZ (Narrow); match your local mesh |
+| `LORA_FREQ` / `BW` / `SF` / `CR` | 917.375 / 62.5 / 7 / 5 | Must match your main node (`get radio`) |
 
 ## Power / sleep
 
