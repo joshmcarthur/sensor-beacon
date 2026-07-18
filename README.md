@@ -67,12 +67,22 @@ Battery (`V=`) is always included.
 | `BEACON_NODE_NAME` | `beacon` | Prefix in GRP_TXT |
 | `LORA_FREQ` / `BW` / `SF` / `CR` | 916.575 / 62.5 / 7 / 8 | Australia/NZ (Narrow); match your local mesh |
 
+## Power / sleep
+
+Between beacon cycles the firmware enters **System ON idle** (not a busy `delay()`):
+
+- SX1262 is put in sleep via `radio_driver.powerOff()`
+- LEDs off, battery voltage divider disabled, I2C bus released
+- MCU sleeps in `board.sleep()` until the next interval (FreeRTOS tickless idle)
+
+The nRF52840 cannot wake itself on a timer from **SYSTEMOFF** (clocks stop), so timed beacons use System ON idle instead. That still drops current dramatically once the radio is asleep — the LoRa module was the main draw. Serial shows `sleep: 300s (battery, system-on idle)` before each nap.
+
 ## Architecture
 
 - **MeshCore** via `lib_deps` (library mode, `MC_VARIANT=xiao_nrf52` for board/radio glue)
 - **`SensorReader`** — orchestrates pluggable I2C `SensorChannel` drivers (probe at boot, read each cycle)
 - **`BeaconMesh`** — thin `mesh::Mesh` subclass; no forwarding, private-channel flood only
-- **Loop:** wake → read → flood 2–3× → drain TX → `delay(interval)`
+- **Loop:** wake → read → flood 2–3× → drain TX → deep idle sleep (`BEACON_INTERVAL_SECS`)
 
 Sensor drivers live in `src/sensors/`. Each driver subclasses `SensorChannel` and implements probe, read, and beacon formatting. See [Adding a sensor](#adding-a-sensor).
 

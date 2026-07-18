@@ -7,6 +7,7 @@
 #include <target.h>
 
 #include "BeaconMesh.h"
+#include "BeaconPower.h"
 #include "SensorReader.h"
 #include "config.h"
 
@@ -126,6 +127,7 @@ void setup() {
 
 void loop() {
   rtc_clock.tick();
+  beacon.begin();
   runBeaconCycle();
-  delay((uint32_t)BEACON_INTERVAL_SECS * 1000UL);
+  sleepBetweenBeacons(BEACON_INTERVAL_SECS);
 }
