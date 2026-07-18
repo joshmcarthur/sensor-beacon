@@ -4,3 +4,5 @@
 build_flags =
   -D BEACON_NODE_NAME='"garden01"'
   -D BEACON_CHANNEL_PSK='"YOUR_32_CHAR_HEX_PSK_HERE"'
+  ; Optional DHT22 on D0 (1-wire, not I2C):
+  ; -D DHT22_PIN=D0

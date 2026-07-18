@@ -4,6 +4,7 @@
 
 SensorReader::SensorReader() {
   _channels[_channel_count++] = &_bme280;
+  _channels[_channel_count++] = &_dht22;
   _channels[_channel_count++] = &_opt3001;
   _channels[_channel_count++] = &_bh1750;
   _channels[_channel_count++] = &_ltr390;

@@ -2,12 +2,12 @@
 
 Minimal MeshCore firmware for **Seeed Xiao nRF52840 + Wio SX1262** nodes that read optional I2C sensors and flood compact `GRP_TXT` beacons on a **private group channel**.
 
-One firmware binary serves a heterogeneous fleet: BME280, OPT3001/BH1750 (lux), and LTR390 (UV) are probed once at boot; absent sensors are skipped.
+One firmware binary serves a heterogeneous fleet: BME280/DHT22 (temp/humidity), OPT3001/BH1750 (lux), and LTR390 (UV) are probed once at boot; absent sensors are skipped.
 
 ## Hardware
 
 - **MCU / radio:** Xiao nRF52840 + Wio SX1262 (LoRa D1–D5, SPI D8–D10, I2C D6/D7)
-- **Optional sensors:** BME280, OPT3001 or BH1750 (lux), LTR390 (UV) (any subset per node)
+- **Optional sensors:** BME280 or DHT22 (temp/humidity), OPT3001 or BH1750 (lux), LTR390 (UV) (any subset per node)
 - **Battery:** read via Xiao ADC (`board.getBattMilliVolts()`)
 
 ## Quick start
@@ -65,6 +65,7 @@ Battery (`V=`) is always included. Message timestamps in the app come from the s
 |--------|---------|-------------|
 | `BEACON_INTERVAL_SECS` | 300 | Seconds between beacon cycles |
 | `BEACON_SEND_COUNT` | 3 | Flood sends per cycle (with jitter) |
+| `DHT22_PIN` | *(off)* | Enable DHT22 on a GPIO, e.g. `D0` (see below) |
 | `BEACON_NODE_NAME` | `beacon` | Prefix in GRP_TXT |
 | `LORA_FREQ` / `BW` / `SF` / `CR` | 916.575 / 62.5 / 7 / 8 | Australia/NZ (Narrow); match your local mesh |
 
@@ -86,6 +87,31 @@ The nRF52840 cannot wake itself on a timer from **SYSTEMOFF** (clocks stop), so 
 - **Loop:** wake → read → flood 2–3× → drain TX → deep idle sleep (`BEACON_INTERVAL_SECS`)
 
 Sensor drivers live in `src/sensors/`. Each driver subclasses `SensorChannel` and implements probe, read, and beacon formatting. See [Adding a sensor](#adding-a-sensor).
+
+### DHT22 (1-wire, not I2C)
+
+**DHT22 / AM2302 only** — DHT11 uses different 1-wire timing and is not supported by this driver.
+
+DHT22 uses a **single data pin** — not the I2C bus. On XIAO + Wio SX1262, **D0** is the usual choice (D1–D7 are LoRa or I2C).
+
+Enable in `platformio.local.ini` or `platformio.ini`:
+
+```ini
+build_flags =
+  -D DHT22_PIN=D0
+```
+
+Wiring (typical 3-pin module with onboard 10k pull-up):
+
+| DHT22 | XIAO |
+|-------|------|
+| VCC | 3.3V |
+| GND | GND |
+| DATA | D0 (or your `DHT22_PIN`) |
+
+Beacon fields match BME280: `T=` and `H=` (no pressure). Use **one** temp/humidity sensor per node — don't combine BME280 and DHT22 on the same board.
+
+One XIAO = one DHT22. Your spare modules go on other beacon nodes.
 
 ## Adding a sensor
 

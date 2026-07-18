@@ -6,6 +6,7 @@
 #include "SensorReading.h"
 #include "sensors/Bh1750Sensor.h"
 #include "sensors/Bme280Sensor.h"
+#include "sensors/Dht22Sensor.h"
 #include "sensors/Ltr390Sensor.h"
 #include "sensors/Opt3001Sensor.h"
 #include "sensors/SensorChannel.h"
@@ -26,6 +27,7 @@ private:
   static constexpr size_t kMaxChannels = 8;
 
   Bme280Sensor _bme280;
+  Dht22Sensor _dht22;
   Opt3001Sensor _opt3001;
   Bh1750Sensor _bh1750;
   Ltr390Sensor _ltr390;
