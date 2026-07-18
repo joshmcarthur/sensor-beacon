@@ -75,7 +75,7 @@ void runBeaconCycle() {
     }
   }
 
-  beacon.drainTx(BEACON_TX_DRAIN_MS);
+  beacon.drainTx(BEACON_TX_DRAIN_MS, BEACON_SEND_COUNT);
   Serial.println(F("beacon: tx drain complete"));
 }
 

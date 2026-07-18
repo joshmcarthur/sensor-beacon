@@ -14,7 +14,7 @@ public:
   bool sendGroupText(const mesh::GroupChannel& channel, const char* sender_name,
                      const char* text);
 
-  void drainTx(uint32_t timeout_ms);
+  void drainTx(uint32_t timeout_ms, uint32_t expected_flood_sends = 1);
 
   float getAirtimeBudgetFactor() const override { return 0.0f; }
   bool allowPacketForward(const mesh::Packet* packet) override;

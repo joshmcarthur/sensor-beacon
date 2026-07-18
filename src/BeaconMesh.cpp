@@ -39,11 +39,18 @@ bool BeaconMesh::sendGroupText(const mesh::GroupChannel& channel, const char* se
   return true;
 }
 
-void BeaconMesh::drainTx(uint32_t timeout_ms) {
-  unsigned long start = millis();
+void BeaconMesh::drainTx(uint32_t timeout_ms, uint32_t expected_flood_sends) {
+  const uint32_t start_flood = getNumSentFlood();
+  const unsigned long start = millis();
   while (millis() - start < timeout_ms) {
     loop();
-    if (_packet_mgr.getOutboundCount(millis()) == 0) {
+    const uint32_t sent = getNumSentFlood() - start_flood;
+    if (sent >= expected_flood_sends && _packet_mgr.getOutboundCount(millis()) == 0) {
+      // Let the dispatcher finish any in-flight TX bookkeeping.
+      for (uint8_t i = 0; i < 5; i++) {
+        loop();
+        delay(2);
+      }
       break;
     }
     delay(1);
