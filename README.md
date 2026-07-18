@@ -2,12 +2,12 @@
 
 Minimal MeshCore firmware for **Seeed Xiao nRF52840 + Wio SX1262** nodes that read optional I2C sensors and flood compact `GRP_TXT` beacons on a **private group channel**.
 
-One firmware binary serves a heterogeneous fleet: BME280, OPT3001 (lux), and LTR390 (UV) are probed once at boot; absent sensors are skipped.
+One firmware binary serves a heterogeneous fleet: BME280, OPT3001/BH1750 (lux), and LTR390 (UV) are probed once at boot; absent sensors are skipped.
 
 ## Hardware
 
 - **MCU / radio:** Xiao nRF52840 + Wio SX1262 (LoRa D1–D5, SPI D8–D10, I2C D6/D7)
-- **Optional sensors:** BME280, OPT3001, LTR390 (any subset per node)
+- **Optional sensors:** BME280, OPT3001 or BH1750 (lux), LTR390 (UV) (any subset per node)
 - **Battery:** read via Xiao ADC (`board.getBattMilliVolts()`)
 
 ## Quick start
