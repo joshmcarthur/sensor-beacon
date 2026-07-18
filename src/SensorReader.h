@@ -19,7 +19,7 @@ public:
 
   bool begin(TwoWire& wire, uint16_t (*readBatteryMv)());
   Reading read();
-  int formatBeaconMessage(const Reading& reading, char* buf, size_t buf_len) const;
+  int formatBeaconMessage(const Reading& reading, char* buf, size_t buf_len, uint32_t seq) const;
 
 private:
   static constexpr size_t kMaxChannels = 8;

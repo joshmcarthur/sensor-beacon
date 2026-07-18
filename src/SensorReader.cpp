@@ -45,17 +45,21 @@ Reading SensorReader::read() {
   return reading;
 }
 
-int SensorReader::formatBeaconMessage(const Reading& reading, char* buf, size_t buf_len) const {
+int SensorReader::formatBeaconMessage(const Reading& reading, char* buf, size_t buf_len,
+                                      uint32_t seq) const {
   if (buf_len == 0) {
     return 0;
   }
   buf[0] = '\0';
 
+  char field[48];
+  snprintf(field, sizeof(field), "seq=%lu", (unsigned long)seq);
+  appendBeaconField(buf, buf_len, field);
+
   for (size_t i = 0; i < _channel_count; i++) {
     _channels[i]->appendBeaconFields(reading, buf, buf_len);
   }
 
-  char field[48];
   snprintf(field, sizeof(field), "V=%.2f", reading.battery_v);
   appendBeaconField(buf, buf_len, field);
 

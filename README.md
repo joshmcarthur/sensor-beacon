@@ -23,10 +23,10 @@ pio device monitor
 
 ## Secrets (`platformio.local.ini`)
 
-Generate a 16-byte random PSK and base64-encode it:
+Generate a 16-byte random PSK as 32 hex characters:
 
 ```bash
-openssl rand -base64 16
+openssl rand -hex 16
 ```
 
 Copy `platformio.local.ini.example` to `platformio.local.ini` and set the `[beacon_secrets]` section only. Do **not** replace the full `[env:xiao_sensor_beacon]` block — that drops radio and mesh build flags.
@@ -37,26 +37,27 @@ Example:
 [beacon_secrets]
 build_flags =
   -D BEACON_NODE_NAME='"garden01"'
-  -D BEACON_CHANNEL_PSK='"izOH6cXN6mrJ5e26oRXNcg=="'
+  -D BEACON_CHANNEL_PSK='"7b014167e5fe21a36ec407c86de92eb0"'
 ```
 
 ## Collector setup
 
-1. In the MeshCore companion app, create a **private channel** with the same PSK.
-2. Confirm messages arrive as `node_name: T=… H=… P=… L=… UV=… V=…` (only present fields).
-3. Traffic stays on your channel hash — not the default public channel.
+1. In the MeshCore companion app, create a **private channel** with the same PSK (32 hex chars, 16 bytes).
+2. The channel **name** is only a label in the app — routing uses the PSK hash, so any name works as long as the key matches.
+3. Confirm messages arrive as `node_name: T=… H=… P=… L=… UV=… V=…` (only present fields).
+4. Traffic stays on your channel hash — not the default public channel.
 
 ## Message format
 
-Variable key=value fields after the node name prefix:
+Variable key=value fields after the node name prefix. `seq` is a monotonic counter persisted across reboots (useful when the RTC is unset):
 
 ```
-garden01: T=18.2 H=94 P=1012 L=320 UV=4.2 V=3.85
-shed02: T=18.2 H=94 P=1012 V=3.85
-post03: L=120 UV=2.1 V=3.90
+garden01: seq=42 T=18.2 H=94 P=1012 L=320 UV=4.2 V=3.85
+shed02: seq=7 T=18.2 H=94 P=1012 V=3.85
+post03: seq=108 L=120 UV=2.1 V=3.90
 ```
 
-Battery (`V=`) is always included.
+Battery (`V=`) is always included. Message timestamps in the app come from the sender RTC (placeholder on XIAO without an I2C RTC); use `seq` to order beacons.
 
 ## Configuration
 

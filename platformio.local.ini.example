@@ -3,4 +3,4 @@
 [beacon_secrets]
 build_flags =
   -D BEACON_NODE_NAME='"garden01"'
-  -D BEACON_CHANNEL_PSK='"YOUR_BASE64_PSK_HERE"'
+  -D BEACON_CHANNEL_PSK='"YOUR_32_CHAR_HEX_PSK_HERE"'
