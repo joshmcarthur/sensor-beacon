@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Packet.h>
 #include <helpers/TxtDataHelpers.h>
+#include <target.h>
 
 bool BeaconMesh::allowPacketForward(const mesh::Packet* packet) {
   (void)packet;
@@ -55,4 +56,7 @@ void BeaconMesh::drainTx(uint32_t timeout_ms, uint32_t expected_flood_sends) {
     }
     delay(1);
   }
+
+  // TX-only beacon: MeshCore's dispatcher leaves the radio in RX after loop().
+  radio_driver.powerOff();
 }
