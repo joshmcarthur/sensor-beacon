@@ -41,6 +41,7 @@ Reading SensorReader::read() {
 
   if (_readBatteryMv) {
     reading.battery_v = _readBatteryMv() / 1000.0f;
+    reading.has_battery = true;
     reading.ok = true;
   }
 
@@ -62,8 +63,10 @@ int SensorReader::formatBeaconMessage(const Reading& reading, char* buf, size_t 
     _channels[i]->appendBeaconFields(reading, buf, buf_len);
   }
 
-  snprintf(field, sizeof(field), "V=%.2f", reading.battery_v);
-  appendBeaconField(buf, buf_len, field);
+  if (reading.has_battery) {
+    snprintf(field, sizeof(field), "V=%.2f", reading.battery_v);
+    appendBeaconField(buf, buf_len, field);
+  }
 
   return (int)strlen(buf);
 }

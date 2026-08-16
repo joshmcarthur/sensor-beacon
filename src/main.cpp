@@ -23,6 +23,16 @@ void waitForUsbSerial(uint32_t timeout_ms = kUsbSerialWaitMs) {
   delay(200);
 }
 
+void beginSerial() {
+  Serial.begin(115200);
+#if defined(STM32_PLATFORM)
+  Serial.println(F("boot: uart"));
+  Serial.flush();
+#else
+  waitForUsbSerial();
+#endif
+}
+
 void halt() {
   while (true) {
     delay(1000);
@@ -52,9 +62,11 @@ bool loadChannelFromPsk(const char* psk_hex, mesh::GroupChannel& channel) {
   return true;
 }
 
+#if BEACON_HAS_VBAT
 uint16_t readBatteryMv() {
   return board.getBattMilliVolts();
 }
+#endif
 
 uint32_t loadBeaconSequence() {
   uint32_t seq = 0;
@@ -178,8 +190,7 @@ void runBeaconCycle() {
 }
 
 void setup() {
-  Serial.begin(115200);
-  waitForUsbSerial();
+  beginSerial();
 
   board.begin();
 
@@ -218,7 +229,11 @@ void setup() {
   Serial.print(F("beacon seq: "));
   Serial.println(beacon_sequence);
 
+#if BEACON_HAS_VBAT
   sensor_reader.begin(Wire, readBatteryMv);
+#else
+  sensor_reader.begin(Wire, nullptr);
+#endif
   beacon.begin();
   board.onBootComplete();
 
@@ -229,7 +244,6 @@ void setup() {
 
 void loop() {
   rtc_clock.tick();
-  beacon.begin();
   runBeaconCycle();
   sleepBetweenBeacons(BEACON_INTERVAL_SECS);
 }

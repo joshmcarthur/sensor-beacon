@@ -12,5 +12,6 @@ struct Reading {
   bool has_lux = false;
   bool has_bh1750 = false;
   bool has_uv = false;
+  bool has_battery = false;
   bool ok = false;
 };

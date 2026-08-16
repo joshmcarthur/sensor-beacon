@@ -1,5 +1,6 @@
 #include "Bme280Sensor.h"
 
+#include <SPI.h>
 #include <Adafruit_BME280.h>
 
 #include "BeaconFields.h"

@@ -17,3 +17,8 @@
 #endif
 
 #define BEACON_TX_DRAIN_MS 5000
+
+// Include V= in the beacon when a battery ADC path exists (XIAO yes, bare RAK3172 no).
+#ifndef BEACON_HAS_VBAT
+#define BEACON_HAS_VBAT 1
+#endif

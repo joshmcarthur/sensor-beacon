@@ -6,3 +6,8 @@ build_flags =
   -D BEACON_CHANNEL_PSK='"YOUR_32_CHAR_HEX_PSK_HERE"'
   ; Optional DHT22 on D0 (1-wire, not I2C):
   ; -D DHT22_PIN=D0
+
+; RAK3172 (UART2 PA2/PA3, 115200). Hold BOOT0 high to upload:
+;   pio run -e rak3172_sensor_beacon -t upload
+; ST-Link instead of serial:
+;   upload_protocol = stlink
