@@ -3,6 +3,8 @@
 #include <Mesh.h>
 #include <helpers/StaticPoolPacketManager.h>
 
+#include "BeaconCycle.h"
+
 class BeaconMesh : public mesh::Mesh {
   StaticPoolPacketManager& _packet_mgr;
 
