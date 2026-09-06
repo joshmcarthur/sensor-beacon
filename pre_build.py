@@ -68,3 +68,9 @@ if env_name.startswith("rak3172"):
         subghz = os.path.join(stm32_pkg, "libraries/SubGhz/src")
         if os.path.isdir(subghz):
             menv.Append(CPPPATH=[subghz])
+
+if env_name.endswith("_sensor_repeater"):
+    repeater_dir = os.path.join(mc_dir, "examples/simple_repeater")
+    if os.path.isdir(repeater_dir):
+        menv.Append(CPPPATH=[repeater_dir])
+        menv.Append(BUILD_FLAGS=[f"-I{repeater_dir}"])

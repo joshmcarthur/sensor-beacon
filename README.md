@@ -183,12 +183,37 @@ Between beacon cycles the firmware enters **System ON idle** (not a busy `delay(
 
 The nRF52840 cannot wake itself on a timer from **SYSTEMOFF** (clocks stop), so timed beacons use System ON idle instead. That still drops current dramatically once the radio is asleep — the LoRa module was the main draw. Serial shows `sleep: 300s (battery, system-on idle)` before each nap.
 
+## Sensor repeater (always-on hybrid)
+
+For high-point nodes that **relay mesh traffic** and **send their own sensor beacons**, use a repeater env instead of the leaf beacon:
+
+| Env | Hardware | Role |
+|-----|----------|------|
+| `xiao_sensor_repeater` | XIAO + Wio-SX1262 | Prototype / moderate traffic |
+| `rak3172_sensor_repeater` | RAK3172-T | Production high-point node |
+
+```bash
+pio run -e xiao_sensor_repeater -t upload
+pio run -e rak3172_sensor_repeater -t upload
+```
+
+Repeater firmware subclasses MeshCore's `MyMesh` (full repeater forwarding) and schedules the same `GRP_TXT` beacon cycle as leaf nodes on `BEACON_CHANNEL_PSK`. The radio stays in RX between beacons — expect **~20–40 mA average** (mains/solar/large battery), not coin-cell duty cycles.
+
+Serial CLI is available (default admin password `password`; override with `ADMIN_PASSWORD` in build flags).
+
 ## Architecture
 
-- **MeshCore** via `lib_deps` (library mode, `MC_VARIANT=xiao_nrf52` for board/radio glue)
+```
+src/                      # shared library (SensorReader, sensors/, config.h)
+examples/sensor_beacon/   # leaf TX-only firmware (BeaconMesh, deep sleep)
+examples/sensor_repeater/ # always-on hybrid (MyMesh subclass + beacon timer)
+```
+
+- **MeshCore** via `lib_deps` (library mode, `MC_VARIANT` for board/radio glue)
 - **`SensorReader`** — orchestrates pluggable I2C `SensorChannel` drivers (probe at boot, read each cycle)
-- **`BeaconMesh`** — thin `mesh::Mesh` subclass; no forwarding, private-channel flood only
-- **Loop:** wake → read → flood 2–3× → drain TX → deep idle sleep (`BEACON_INTERVAL_SECS`)
+- **`BeaconMesh`** (leaf only) — thin `mesh::Mesh` subclass; no forwarding, private-channel flood only
+- **Leaf loop:** wake → read → flood 2–3× → drain TX → deep idle sleep (`BEACON_INTERVAL_SECS`)
+- **Repeater loop:** relay continuously → scheduled sensor beacon → stay in RX
 
 Sensor drivers live in `src/sensors/`. Each driver subclasses `SensorChannel` and implements probe, read, and beacon formatting. See [Adding a sensor](#adding-a-sensor).
 
