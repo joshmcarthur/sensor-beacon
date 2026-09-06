@@ -1,13 +1,37 @@
-; Copy to platformio.local.ini and customize per node / deployment.
+; Copy to platformio.local.ini and customize per deployment.
+;
+; No secrets are committed in platformio.ini — copy this file first.
+;
+; GRP_TXT sender on the private channel: {BEACON_NODE_PREFIX}-{6 hex of pub_key}
+; Mesh advert / serial CLI name: ADVERT_NAME (repeaters only)
 
 [beacon_secrets]
 build_flags =
-  -D BEACON_NODE_NAME='"garden01"'
   -D BEACON_CHANNEL_PSK='"YOUR_32_CHAR_HEX_PSK_HERE"'
+  ; Optional site label for GRP_TXT, e.g. shed-a3f1c2 (default "beacon"):
+  ; -D BEACON_NODE_PREFIX='"shed"'
   ; Optional DHT22 on D0 (1-wire, not I2C):
   ; -D DHT22_PIN=D0
 
-; RAK3172 (UART2 PA2/PA3, 115200). Hold BOOT0 high to upload:
-;   pio run -e rak3172_sensor_beacon -t upload
+; Repeaters (xiao_sensor_repeater, rak3172_sensor_repeater):
+[repeater_secrets]
+build_flags =
+  -D ADMIN_PASSWORD='"change-me"'
+  -D ADVERT_NAME='"hilltop"'
+  ; To match mesh and GRP_TXT labels, also set BEACON_NODE_PREFIX in [beacon_secrets].
+
+; Leaf beacon:
+;   pio run -e xiao_sensor_beacon -t upload
+;
+; Repeater (always-on, relays mesh + sends sensor beacons):
+;   pio run -e xiao_sensor_repeater -t upload
+;   pio run -e rak3172_sensor_repeater -t upload
+;
+; RAK3172 (UART2 PA2/PA3, 115200). Hold BOOT0 high to upload.
 ; ST-Link instead of serial:
 ;   upload_protocol = stlink
+;
+; VBAT defaults to VDD via VREFINT (Ni-MH / cell tied to VDD). Li-ion up to 4.2 V
+; with a regulator still needs a divider tap:
+;   -D BEACON_VBAT_PIN=PB3
+;   -D BEACON_VBAT_MULTIPLIER=2

@@ -19,6 +19,7 @@ StaticPoolPacketManager packet_mgr(8);
 BeaconMesh beacon(radio_driver, arduino_ms, rng, rtc_clock, packet_mgr, tables);
 SensorReader sensor_reader;
 
+char beacon_node_name[kBeaconNodeNameMax];
 mesh::GroupChannel beacon_channel;
 uint32_t beacon_sequence = 0;
 BeaconCycleConfig beacon_cycle;
@@ -43,6 +44,7 @@ void setup() {
   beacon_sequence = loadBeaconSequence();
   IdentityStore store(InternalFS, "");
   loadOrCreateMainIdentity(store, beacon.self_id);
+  formatBeaconNodeName(beacon_node_name, sizeof(beacon_node_name), beacon.self_id.pub_key);
 
   Serial.print(F("node id: "));
   mesh::Utils::printHex(Serial, beacon.self_id.pub_key, PUB_KEY_SIZE);
@@ -53,9 +55,9 @@ void setup() {
     halt();
   }
 
-  beacon_cycle = {beacon_channel, BEACON_NODE_NAME, &beacon_sequence};
+  beacon_cycle = {beacon_channel, beacon_node_name, &beacon_sequence};
   logRadioConfig();
-  logChannelConfig(beacon_channel, BEACON_NODE_NAME);
+  logChannelConfig(beacon_channel, beacon_node_name);
   Serial.print(F("beacon seq: "));
   Serial.println(beacon_sequence);
 

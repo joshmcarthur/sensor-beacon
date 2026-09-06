@@ -118,7 +118,7 @@ Example hookup for a BME280 breakout:
 
 ```bash
 cp platformio.local.ini.example platformio.local.ini
-# Edit [beacon_secrets]: BEACON_NODE_NAME and BEACON_CHANNEL_PSK
+# Edit [beacon_secrets]: BEACON_CHANNEL_PSK (required); optional BEACON_NODE_PREFIX
 
 pio run -e xiao_sensor_beacon
 pio run -e xiao_sensor_beacon -t upload
@@ -133,15 +133,16 @@ Generate a 16-byte random PSK as 32 hex characters:
 openssl rand -hex 16
 ```
 
-Copy `platformio.local.ini.example` to `platformio.local.ini` and set the `[beacon_secrets]` section only. Do **not** replace the full `[env:xiao_sensor_beacon]` block — that drops radio and mesh build flags.
+Copy `platformio.local.ini.example` to `platformio.local.ini` and set `[beacon_secrets]` (required). Repeater builds also need `[repeater_secrets]`. Do **not** replace the full `[env:…]` blocks — that drops radio and mesh build flags.
 
 Example:
 
 ```ini
 [beacon_secrets]
 build_flags =
-  -D BEACON_NODE_NAME='"garden01"'
   -D BEACON_CHANNEL_PSK='"7b014167e5fe21a36ec407c86de92eb0"'
+  ; Optional site label, e.g. garden01-a3f1c2 (default "beacon"):
+  ; -D BEACON_NODE_PREFIX='"garden01"'
 ```
 
 ## Collector setup
@@ -153,12 +154,12 @@ build_flags =
 
 ## Message format
 
-Variable key=value fields after the node name prefix. `seq` is a monotonic counter persisted across reboots (useful when the RTC is unset):
+Variable key=value fields after the node name prefix (`{BEACON_NODE_PREFIX}-{6 hex of pub_key}`). `seq` is a monotonic counter persisted across reboots (useful when the RTC is unset):
 
 ```
-garden01: seq=42 T=18.2 H=94 P=1012 L=320 UV=4.2 V=3.85
-shed02: seq=7 T=18.2 H=94 P=1012 V=3.85
-post03: seq=108 L=120 UV=2.1 V=3.90
+garden01-a3f1c2: seq=42 T=18.2 H=94 P=1012 L=320 UV=4.2 V=3.85
+shed02-b4e2d1: seq=7 T=18.2 H=94 P=1012 V=3.85
+post03-c5f3e2: seq=108 L=120 UV=2.1 V=3.90
 ```
 
 Battery (`V=`) is always included. Message timestamps in the app come from the sender RTC (placeholder on XIAO without an I2C RTC); use `seq` to order beacons.
@@ -170,7 +171,7 @@ Battery (`V=`) is always included. Message timestamps in the app come from the s
 | `BEACON_INTERVAL_SECS` | 300 | Seconds between beacon cycles (System ON idle; SX1262 asleep) |
 | `BEACON_SEND_COUNT` | 3 | Flood sends per cycle (with jitter) |
 | `DHT22_PIN` | *(off)* | Enable DHT22 on a GPIO, e.g. `D0` (see below) |
-| `BEACON_NODE_NAME` | `beacon` | Prefix in GRP_TXT |
+| `BEACON_NODE_PREFIX` | `beacon` | Site label in GRP_TXT (`garden01-a3f1c2`) |
 | `LORA_FREQ` / `BW` / `SF` / `CR` | 917.375 / 62.5 / 7 / 5 | Must match your main node (`get radio`) |
 
 ## Power / sleep
@@ -199,7 +200,7 @@ pio run -e rak3172_sensor_repeater -t upload
 
 Repeater firmware subclasses MeshCore's `MyMesh` (full repeater forwarding) and schedules the same `GRP_TXT` beacon cycle as leaf nodes on `BEACON_CHANNEL_PSK`. The radio stays in RX between beacons — expect **~20–40 mA average** (mains/solar/large battery), not coin-cell duty cycles.
 
-Serial CLI is available (default admin password `password`; override with `ADMIN_PASSWORD` in build flags).
+Serial CLI is available at 115200 — set `ADMIN_PASSWORD` and `ADVERT_NAME` in `platformio.local.ini` `[repeater_secrets]` before building (see `platformio.local.ini.example`). Use `BEACON_NODE_PREFIX` to distinguish repeater senders in the companion app.
 
 ## Architecture
 

@@ -2,9 +2,16 @@
 
 #include "BeaconCommon.h"
 #include "BeaconCycle.h"
-#include "SensorReader.h"
+
+#ifndef ADMIN_PASSWORD
+#error "Define ADMIN_PASSWORD in platformio.local.ini ([repeater_secrets]). See platformio.local.ini.example."
+#endif
+#ifndef ADVERT_NAME
+#error "Define ADVERT_NAME in platformio.local.ini ([repeater_secrets]). See platformio.local.ini.example."
+#endif
 
 #include "MyMesh.h"
+#include "SensorReader.h"
 
 class SensorRepeaterApp : public MyMesh {
   mesh::GroupChannel _channel{};

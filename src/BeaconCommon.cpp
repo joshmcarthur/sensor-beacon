@@ -9,6 +9,10 @@
 #include "SensorReader.h"
 #include "config.h"
 
+#if defined(STM32_PLATFORM)
+#include <stm32yyxx_ll_adc.h>
+#endif
+
 using Adafruit_LittleFS_Namespace::File;
 using Adafruit_LittleFS_Namespace::FILE_O_READ;
 using Adafruit_LittleFS_Namespace::FILE_O_WRITE;
@@ -16,6 +20,32 @@ using Adafruit_LittleFS_Namespace::FILE_O_WRITE;
 namespace {
 
 constexpr char kBeaconSeqPath[] = "beacon_seq";
+
+#if BEACON_HAS_VBAT && defined(STM32_PLATFORM)
+uint32_t readVddaMv() {
+  analogRead(AVREF);
+  analogRead(AVREF);
+  uint32_t raw = 0;
+  for (int i = 0; i < 8; i++) {
+    raw += analogRead(AVREF);
+  }
+  raw /= 8;
+  if (raw == 0) {
+    return BEACON_VBAT_REF_MV;
+  }
+  uint32_t vdda = __LL_ADC_CALC_VREFANALOG_VOLTAGE(raw, LL_ADC_RESOLUTION_12B);
+#if defined(BEACON_VBAT_PIN)
+  if (vdda < 2500 || vdda > 3600) {
+    return BEACON_VBAT_REF_MV;
+  }
+#else
+  if (vdda < 1800 || vdda > 3600) {
+    return BEACON_VBAT_REF_MV;
+  }
+#endif
+  return vdda;
+}
+#endif
 
 }  // namespace
 
@@ -38,6 +68,11 @@ void halt() {
   while (true) {
     delay(1000);
   }
+}
+
+void formatBeaconNodeName(char* dest, size_t dest_len, const uint8_t* pub_key) {
+  snprintf(dest, dest_len, "%s-%02x%02x%02x", BEACON_NODE_PREFIX, (unsigned)pub_key[0],
+           (unsigned)pub_key[1], (unsigned)pub_key[2]);
 }
 
 bool loadChannelFromPsk(const char* psk_hex, mesh::GroupChannel& channel) {
@@ -143,6 +178,23 @@ void logChannelConfig(const mesh::GroupChannel& channel, const char* node_name) 
 
 #if BEACON_HAS_VBAT
 uint16_t readBatteryMv() {
+#if defined(STM32_PLATFORM)
+  analogReadResolution(12);
+  uint32_t vdda = readVddaMv();
+#if defined(BEACON_VBAT_PIN)
+  analogRead(BEACON_VBAT_PIN);
+  uint32_t raw = 0;
+  for (int i = 0; i < 8; i++) {
+    raw += analogRead(BEACON_VBAT_PIN);
+  }
+  uint32_t avg = raw / 8;
+  return (uint16_t)((avg * vdda * (uint32_t)BEACON_VBAT_MULTIPLIER) /
+                    (4095UL * (uint32_t)BEACON_VBAT_DIVISOR));
+#else
+  return (uint16_t)vdda;
+#endif
+#else
   return board.getBattMilliVolts();
+#endif
 }
 #endif

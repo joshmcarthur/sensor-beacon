@@ -8,9 +8,12 @@
 class IdentityStore;
 class SensorReader;
 
+constexpr size_t kBeaconNodeNameMax = 32;
+
 void beginSerial();
 void halt();
 
+void formatBeaconNodeName(char* dest, size_t dest_len, const uint8_t* pub_key);
 bool loadChannelFromPsk(const char* psk_hex, mesh::GroupChannel& channel);
 
 uint32_t loadBeaconSequence();

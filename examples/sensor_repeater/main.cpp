@@ -14,7 +14,7 @@ StdRNG rng;
 SimpleMeshTables tables;
 SensorRepeaterApp the_mesh(board, radio_driver, *new ArduinoMillis(), rng, rtc_clock, tables);
 
-char beacon_node_name[32];
+char beacon_node_name[kBeaconNodeNameMax];
 
 void setup() {
   beginSerial();
@@ -30,8 +30,7 @@ void setup() {
 
   IdentityStore store(InternalFS, "");
   loadOrCreateMainIdentity(store, the_mesh.getSelfId());
-  strncpy(beacon_node_name, BEACON_NODE_NAME, sizeof(beacon_node_name) - 1);
-  beacon_node_name[sizeof(beacon_node_name) - 1] = '\0';
+  formatBeaconNodeName(beacon_node_name, sizeof(beacon_node_name), the_mesh.getSelfId().pub_key);
 
   mesh::GroupChannel beacon_channel;
   if (!loadChannelFromPsk(BEACON_CHANNEL_PSK, beacon_channel)) {
